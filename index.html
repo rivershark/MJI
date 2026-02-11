@@ -1,1090 +1,1142 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NEX Asset Manager</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --panel: #111827;
-            --card: #1f2937;
-            --muted: #9ca3af;
-            --text: #e5e7eb;
-            --accent: #22c55e;
-            --accent-2: #60a5fa;
-            --warn: #f59e0b;
-            --danger: #ef4444;
-            --shadow: 0 6px 16px rgba(0,0,0,0.3);
-            --radius: 12px;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NEX Asset Manager</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --card: #1f2937;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --accent-2: #60a5fa;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 6px 16px rgba(0,0,0,0.3);
+      --radius: 12px;
+      --menu-height: 80px; /* pinned action bar height (Home) */
+    }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg); color: var(--text);
+      font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    header {
+      position: sticky; top: 0; z-index: 30;
+      background: linear-gradient(0deg, rgba(15,23,42,0.6), rgba(15,23,42,0.9));
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid #1f2937;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 12px 20px; }
+    .title-row { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; }
+    .title-left { display: inline-flex; align-items: center; gap: 10px; }
+    h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.3px; margin: 0; }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-        }
+    .home-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 10px; background: var(--panel);
+      border: 1px solid #374151; cursor: pointer; color: #cbd5e1;
+    }
+    .home-btn svg { width: 20px; height: 20px; }
+    .home-btn[hidden] { display: none; }
 
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: linear-gradient(0deg, rgba(15,23,42,0.6), rgba(15,23,42,0.9));
-            backdrop-filter: blur(6px);
-            border-bottom: 1px solid #1f2937;
-        }
+    .top-actions { display: inline-flex; gap: 8px; align-items: center; }
+    .btn {
+      background: var(--accent-2); color: #071426; border: 0; padding: 10px 14px; border-radius: 10px;
+      font-weight: 600; cursor: pointer; user-select: none;
+    }
+    .btn.secondary { background: #374151; color: var(--text); }
+    .btn[disabled] { opacity: .6; cursor: not-allowed; }
 
-        .wrap {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 12px 20px;
-        }
+    .search { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+    .search input {
+      background: var(--panel); color: var(--text); border: 1px solid #374151; border-radius: 10px; padding: 10px 12px;
+      width: 260px; outline: none;
+    }
 
-        .title-row {
-            display: grid;
-            grid-template-columns: auto auto 1fr;
-            align-items: center;
-            gap: 12px;
-        }
+    main { padding: 18px 20px calc(var(--menu-height, 80px) + 24px); }
 
-        .title-left {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
+    /* Pinned action bar (Home) */
+    .menu {
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(1100px, 100vw);
+      z-index: 60; display: flex; flex-wrap: nowrap; gap: 8px; align-items: center;
+      background: var(--panel); border: 1px solid #374151; border-radius: 12px 12px 0 0;
+      padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    }
+    .menu .spacer { flex: 1 1 auto; }
+    .menu .status { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .btn.action { background: #334155; color: #cbd5e1; flex: 0 0 auto; }
+    .btn.action.enabled { background: var(--accent-2); color: #071426; cursor: pointer; }
+    .btn.action.danger { background: var(--danger); color: #fff; }
+    .btn[aria-disabled="true"] { opacity: 0.6; cursor: not-allowed; }
 
-        h1 {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            margin: 0;
-        }
+    /* Gallery */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+    .card { background: var(--card); border: 1px solid #374151; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); position: relative; }
+    .thumb { width: 100%; aspect-ratio: 1/1; display: block; object-fit: cover; background: #0b1222; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; gap: 8px; }
+    .left-meta { display: grid; gap: 2px; }
+    .asset { font-weight: 700; letter-spacing: 0.4px; color: #d1fae5; }
+    .file { color: var(--muted); font-size: 12px; }
+    .tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+    .tag { font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid #334155; color: #cbd5e1; }
+    .tag.pull { background: rgba(59,130,246,.15); border-color: #60a5fa; color: #93c5fd; }
+    .tag.sold { background: rgba(34,197,94,.15); border-color: #22c55e; color: #86efac; }
+    .tag.removed { background: rgba(239,68,68,.15); border-color: #ef4444; color: #fecaca; }
 
-        /* Home button (shown on Pull/Settings) */
-        .home-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: var(--panel);
-            border: 1px solid #374151;
-            cursor: pointer;
-            color: #cbd5e1;
-        }
+    .dl { color: #061524; background: var(--accent); border-radius: 8px; padding: 6px 10px; text-decoration: none; font-weight: 700; }
+    .pulled-btn { color: #061524; background: var(--accent); border-radius: 8px; padding: 6px 10px; text-decoration: none; font-weight: 700; cursor: pointer; border: none; }
 
-            .home-btn svg {
-                width: 20px;
-                height: 20px;
-            }
+    .badge-new {
+      position: absolute; top: 8px; right: 8px; background: var(--danger); color: white;
+      width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; box-shadow: var(--shadow);
+    }
+    .empty { color: var(--muted); text-align: center; border: 1px dashed #374151; padding: 18px; border-radius: var(--radius); }
 
-            .home-btn[hidden] {
-                display: none;
-            }
+    .card.add-tile { border: 2px dashed #475569; background: #0b1324; display: grid; place-items: center; cursor: pointer; }
+    .add-plus { width: 84px; height: 84px; border-radius: 16px; background: #0b1324; border: 1px solid #23304b; display: grid; place-items: center; color: var(--accent-2); font-size: 64px; line-height: 1; box-shadow: inset 0 0 35px rgba(96,165,250,0.15); }
+    .card.add-tile:hover { border-color: var(--accent-2); transform: translateY(-2px); transition: 0.2s ease; }
 
-        /* Top actions (Home) */
-        .top-actions {
-            display: inline-flex;
-            gap: 8px;
-            align-items: center;
-        }
+    .sel-overlay { position: absolute; inset: 0; display: grid; place-items: start; padding: 8px; pointer-events: none; }
+    .sel-chip {
+      pointer-events: auto; user-select: none; background: rgba(2,6,23,0.65); color: #fff; border: 1px solid rgba(148,163,184,0.65);
+      border-radius: 20px; padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;
+      opacity: 0; transform: translateY(-6px); transition: opacity .15s ease, transform .15s ease;
+    }
+    .card:hover .sel-chip, .card.selected .sel-chip { opacity: 1; transform: translateY(0); }
+    .card.selected { outline: 2px solid var(--accent-2); outline-offset: -2px; }
+    .card.selected .sel-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #e2e8f0; background: var(--accent-2); }
 
-        .btn {
-            background: var(--accent-2);
-            color: #071426;
-            border: 0;
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-        }
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal-backdrop.show { display: flex; }
+    .modal { background: var(--panel); color: var(--text); border: 1px solid #374151; border-radius: 12px; width: min(680px, 92vw); box-shadow: var(--shadow); }
+    .modal header, .modal footer { padding: 14px 16px; border-bottom: 1px solid #374151; }
+    .modal footer { border-top: 1px solid #374151; border-bottom: 0; display: flex; gap: 8px; justify-content: flex-end; }
+    .modal .body { padding: 16px; }
+    .field { display: grid; gap: 6px; margin-bottom: 12px; }
+    .field label { font-size: 13px; color: var(--muted); }
+    .field input, .field textarea, .field select { background: #0b1324; color: var(--text); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
 
-            .btn.secondary {
-                background: #374151;
-                color: var(--text);
-            }
+    /* Fullscreen viewer (Pull) */
+    .fs-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: none; z-index: 1000; touch-action: none; cursor: zoom-out; }
+    .fs-backdrop.show { display: block; }
+    .fs-img {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) translate(0px, 0px) scale(1);
+      max-width: 100vw; max-height: 100vh; user-select: none; -webkit-user-drag: none; will-change: transform;
+    }
 
-        .search {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            justify-content: flex-end;
-        }
+    /* --- Mobile grid overrides --- */
+    @media (max-width: 740px) and (orientation: portrait) { .gallery { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1024px) and (orientation: landscape) { .gallery { grid-template-columns: repeat(4, 1fr); } }
 
-            .search input {
-                background: var(--panel);
-                color: var(--text);
-                border: 1px solid #374151;
-                border-radius: 10px;
-                padding: 10px 12px;
-                width: 220px;
-                outline: none;
-            }
+    /* Capture page */
+    .capture { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+    @media (max-width: 900px) { .capture { grid-template-columns: 1fr; } }
+    .cap-box {
+      position: relative; background: #0b1324; border: 1px solid #334155; border-radius: 12px; padding: 12px; min-height: 300px;
+      display: grid; place-items: center;
+    }
+    .cap-video {
+      width: 100%; max-height: 70vh; background: #000; border-radius: 10px; object-fit: contain;
+    }
+    .cap-overlay {
+      position: absolute; left: 12px; top: 12px; display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.55); color: #fff; border: 1px solid rgba(148,163,184,0.65);
+      border-radius: 20px; padding: 6px 10px; font-weight: 700;
+    }
+    .cap-controls { background: var(--panel); border: 1px solid #334155; border-radius: 12px; padding: 12px; display: grid; gap: 12px; }
+    .cap-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nextid { font-weight: 800; letter-spacing: 1px; color: #d1fae5; }
+    .cap-last img { width: 100%; border-radius: 10px; border: 1px solid #334155; }
+    .cap-note { color: var(--muted); font-size: 12px; }
 
-        main {
-            padding: 18px 20px 60px;
-        }
-
-        /* Action banner (Home only) */
-        .menu {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            background: var(--panel);
-            border: 1px solid #374151;
-            border-radius: 12px;
-            padding: 10px;
-            margin: 12px 0 16px;
-            position: sticky;
-            top: 62px;
-            z-index: 15;
-        }
-
-            .menu .spacer {
-                flex: 1 1 auto;
-            }
-
-            .menu .status {
-                color: var(--muted);
-                font-size: 12px;
-            }
-
-        .btn.action {
-            background: #334155;
-            color: #cbd5e1;
-        }
-
-            .btn.action.enabled {
-                background: var(--accent-2);
-                color: #071426;
-                cursor: pointer;
-            }
-
-            .btn.action.danger {
-                background: var(--danger);
-                color: #fff;
-            }
-
-        .btn[aria-disabled="true"] {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Gallery */
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 16px;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid #374151;
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            position: relative;
-        }
-
-        .thumb {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            display: block;
-            object-fit: cover;
-            background: #0b1222;
-        }
-
-        .card-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 12px;
-            gap: 8px;
-        }
-
-        .left-meta {
-            display: grid;
-            gap: 2px;
-        }
-
-        .asset {
-            font-weight: 700;
-            letter-spacing: 0.4px;
-            color: #d1fae5;
-        }
-
-        .file {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .tags {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-top: 4px;
-        }
-
-        .tag {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            border: 1px solid #334155;
-            color: #cbd5e1;
-        }
-
-            .tag.pull {
-                background: rgba(59,130,246,.15);
-                border-color: #60a5fa;
-                color: #93c5fd;
-            }
-
-            .tag.sold {
-                background: rgba(34,197,94,.15);
-                border-color: #22c55e;
-                color: #86efac;
-            }
-
-        .dl {
-            color: #061524;
-            background: var(--accent);
-            border-radius: 8px;
-            padding: 6px 10px;
-            text-decoration: none;
-            font-weight: 700;
-        }
-
-        .pulled-btn {
-            color: #061524;
-            background: var(--accent);
-            border-radius: 8px;
-            padding: 6px 10px;
-            text-decoration: none;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-        }
-
-        .badge-new {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: var(--danger);
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            font-weight: 900;
-            box-shadow: var(--shadow);
-        }
-
-        .empty {
-            color: var(--muted);
-            text-align: center;
-            border: 1px dashed #374151;
-            padding: 18px;
-            border-radius: var(--radius);
-        }
-
-        /* Upload tile styled like a gallery card (Home only) */
-        .card.add-tile {
-            border: 2px dashed #475569;
-            background: #0b1324;
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-        }
-
-        .add-plus {
-            width: 84px;
-            height: 84px;
-            border-radius: 16px;
-            background: #0b1324;
-            border: 1px solid #23304b;
-            display: grid;
-            place-items: center;
-            color: var(--accent-2);
-            font-size: 64px;
-            line-height: 1;
-            box-shadow: inset 0 0 35px rgba(96,165,250,0.15);
-        }
-
-        .card.add-tile:hover {
-            border-color: var(--accent-2);
-            transform: translateY(-2px);
-            transition: 0.2s ease;
-        }
-
-        /* Selection overlay */
-        .card .sel-overlay {
-            position: absolute;
-            inset: 0;
-            display: grid;
-            place-items: start;
-            padding: 8px;
-            pointer-events: none;
-        }
-
-        .sel-chip {
-            pointer-events: auto;
-            user-select: none;
-            background: rgba(2,6,23,0.65);
-            color: #fff;
-            border: 1px solid rgba(148,163,184,0.65);
-            border-radius: 20px;
-            padding: 6px 10px;
-            font-size: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            opacity: 0;
-            transform: translateY(-6px);
-            transition: opacity .15s ease, transform .15s ease;
-        }
-
-        .card:hover .sel-chip, .card.selected .sel-chip {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .card.selected {
-            outline: 2px solid var(--accent-2);
-            outline-offset: -2px;
-        }
-
-            .card.selected .sel-chip .dot {
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-                border: 2px solid #e2e8f0;
-                background: var(--accent-2);
-            }
-
-        /* Modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-
-            .modal-backdrop.show {
-                display: flex;
-            }
-
-        .modal {
-            background: var(--panel);
-            color: var(--text);
-            border: 1px solid #374151;
-            border-radius: 12px;
-            width: min(680px, 92vw);
-            box-shadow: var(--shadow);
-        }
-
-            .modal header, .modal footer {
-                padding: 14px 16px;
-                border-bottom: 1px solid #374151;
-            }
-
-            .modal footer {
-                border-top: 1px solid #374151;
-                border-bottom: 0;
-                display: flex;
-                gap: 8px;
-                justify-content: flex-end;
-            }
-
-            .modal .body {
-                padding: 16px;
-            }
-
-        .field {
-            display: grid;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-
-            .field label {
-                font-size: 13px;
-                color: var(--muted);
-            }
-
-            .field input, .field textarea, .field select {
-                background: #0b1324;
-                color: var(--text);
-                border: 1px solid #334155;
-                border-radius: 10px;
-                padding: 10px 12px;
-            }
-
-        .twocol {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        @media (max-width: 520px) {
-            .twocol {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Fullscreen viewer (Pull) */
-        .fs-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.96);
-            display: none;
-            z-index: 1000;
-            touch-action: none;
-            cursor: zoom-out;
-        }
-
-            .fs-backdrop.show {
-                display: block;
-            }
-
-        .fs-img {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) translate(0px, 0px) scale(1);
-            max-width: 100vw;
-            max-height: 100vh;
-            user-select: none;
-            -webkit-user-drag: none;
-            will-change: transform;
-        }
-
-        /* Print */
-        @media print {
-            header, .menu, #gallery .add-tile, .empty {
-                display: none !important;
-            }
-
-            body {
-                background: #fff;
-                color: #000;
-            }
-        }
-    </style>
+    /* Print */
+    @media print {
+      header, .menu, #gallery .add-tile, .empty { display: none !important; }
+      body { background: #fff; color: #000; }
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="wrap">
-            <div class="title-row">
-                <!-- Home icon (only on Pull/Settings) + Title -->
-                <div class="title-left">
-                    <button id="btnHome" class="home-btn" aria-label="Home" hidden>
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z" />
-                        </svg>
-                    </button>
-                    <h1>NEX Asset Manager</h1>
-                </div>
-
-                <!-- Home-only actions -->
-                <div id="topActions" class="top-actions">
-                    <button id="btnGoPull" class="btn" type="button">Pull View</button>
-                    <button id="btnGoSettings" class="btn secondary" type="button">Settings</button>
-                </div>
-
-                <!-- Home-only search -->
-                <div id="searchWrap" class="search" role="search">
-                    <input id="searchInput" type="search" placeholder="Search asset code (e.g., 022601)" aria-label="Search asset code" />
-                    <button id="searchBtn" class="btn" type="button">Search</button>
-                    <button id="clearBtn" class="btn secondary" type="button">Show All</button>
-                </div>
-            </div>
+  <header>
+    <div class="wrap">
+      <div class="title-row">
+        <div class="title-left">
+          <button id="btnHome" class="home-btn" aria-label="Home" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z" />
+            </svg>
+          </button>
+          <h1>NexInventory</h1>
         </div>
-    </header>
 
-    <main class="wrap">
-        <!-- Action menu banner (Home only) -->
-        <nav id="actionMenu" class="menu" aria-label="Asset actions">
-            <button id="btnRetake" class="btn action" type="button" aria-disabled="true">Retake</button>
-            <button id="btnDownload" class="btn action" type="button" aria-disabled="true">Download</button>
-            <button id="btnPrint" class="btn action" type="button" aria-disabled="true">Print</button>
-            <button id="btnPull" class="btn action" type="button" aria-disabled="true">Pull</button>
-            <button id="btnSold" class="btn action" type="button" aria-disabled="true">Sold</button>
-            <button id="btnDetails" class="btn action" type="button" aria-disabled="true">Details</button>
-            <button id="btnDelete" class="btn action danger" type="button" aria-disabled="true">Delete</button>
-            <div class="spacer"></div>
-            <div id="menuStatus" class="status" aria-live="polite">No selection</div>
-        </nav>
-
-        <!-- HOME view -->
-        <section id="homeView">
-            <div id="emptyState" class="empty">No assets yet—add your first image.</div>
-            <div id="gallery" class="gallery" aria-live="polite"></div>
-        </section>
-
-        <!-- PULL DISPLAY view -->
-        <section id="pullView" style="display:none;">
-            <div id="pullEmpty" class="empty">No items in Pull Display.</div>
-            <div id="pullGallery" class="gallery" aria-live="polite"></div>
-        </section>
-
-        <!-- SETTINGS view -->
-        <section id="settingsView" style="display:none;">
-            <div class="card" style="padding:16px;">
-                <h2 style="margin:0 0 12px 0;">Settings</h2>
-
-                <div class="field">
-                    <label for="set_printer">Default printer (label)</label>
-                    <input id="set_printer" type="text" placeholder="e.g., Zebra ZD420" />
-                    <div class="subtle">Web pages can’t pick printers directly; stored for reference / future integrations.</div>
-                </div>
-
-                <div class="field">
-                    <label for="set_folder">Default save folder</label>
-                    <input id="set_folder" type="text" placeholder="e.g., C:\\Labels or /Users/you/Downloads/Labels" />
-                    <div class="subtle">Browsers save to their configured download folder; this value is informational only.</div>
-                </div>
-
-                <div class="field">
-                    <label><input id="set_silent" type="checkbox" /> Attempt silent print (where supported)</label>
-                    <div class="subtle">Most browsers still show a print dialog. Kiosk/managed setups may allow silent printing.</div>
-                </div>
-
-                <div class="field">
-                    <label for="set_newmins">“New” item badge timer (minutes, max 1440)</label>
-                    <input id="set_newmins" type="number" min="0" max="1440" step="1" />
-                </div>
-
-                <hr style="border:0;border-top:1px solid #374151;margin:16px 0;" />
-
-                <!-- Reference: filename format -->
-                <div class="field">
-                    <label>Reference</label>
-                    <div class="subtle">
-                        Asset filename format: <code>{MM}{YY}{SEQ}.jpg</code>. Example: <code>022601.jpg</code> (Feb‑2026, sequence 1).
-                    </div>
-                </div>
-
-                <!-- Reset numbering -->
-                <div class="field" style="padding:12px;border:1px solid #7f1d1d;border-radius:10px;background:rgba(127,29,29,.15);">
-                    <label style="color:#fecaca;"><strong>Reset item numbering</strong></label>
-                    <div class="subtle" style="color:#fecaca;">
-                        ⚠️ <strong>Attention:</strong> Reset sets the <strong>next sequence</strong> to <strong>1</strong>. Existing images keep their numbers.
-                        The app will <strong>not</strong> duplicate any ID—if a generated <code>{MM}{YY}{SEQ}</code> exists, it auto‑increments until unique.
-                    </div>
-                    <div style="margin-top:8px;display:flex;justify-content:flex-end;gap:8px;">
-                        <button id="btnResetNumbering" class="btn action danger" type="button">Reset numbering</button>
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
-                    <button id="set_save" class="btn">Save Settings</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Hidden file input (used for Add and Retake) -->
-    <input id="fileInput" type="file" accept="image/*" capture hidden />
-
-    <!-- Details / Confirm Modal -->
-    <div id="backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="modal" role="document">
-            <header><strong id="modalTitle">Details</strong></header>
-            <div class="body" id="modalBody"></div>
-            <footer id="modalFooter">
-                <button id="modalCancel" class="btn secondary" type="button">Cancel</button>
-                <button id="modalOk" class="btn" type="button">OK</button>
-            </footer>
+        <div id="topActions" class="top-actions">
+          <button id="btnGoCapture" class="btn" type="button">Capture</button>
+          <button id="btnGoPull" class="btn" type="button">Pull View</button>
+          <button id="btnGoSettings" class="btn secondary" type="button">Settings</button>
         </div>
+
+        <div id="searchWrap" class="search" role="search">
+          <input id="searchInput" type="search" placeholder="Search (ID, slot, or slot+box)" aria-label="Search assets" />
+          <button id="searchBtn" class="btn" type="button">Search</button>
+          <button id="clearBtn" class="btn secondary" type="button">Show All</button>
+        </div>
+      </div>
     </div>
+  </header>
 
-    <!-- Fullscreen image viewer (Pull Display) -->
-    <div id="fsBackdrop" class="fs-backdrop" aria-hidden="true">
-        <img id="fsImg" class="fs-img" alt="Fullscreen preview" />
-    </div>
+  <main class="wrap">
+    <!-- HOME view -->
+    <section id="homeView">
+      <div id="emptyState" class="empty">No assets yet—add your first image.</div>
+      <div id="gallery" class="gallery" aria-live="polite"></div>
+    </section>
 
-    <script>
-        (() => {
-            /* ---------- Keys & config ---------- */
-            const DB_KEY = 'nexAssetManager_assets_v1';
-            const PREFS_KEY = 'nexAssetManager_prefs_v1';
-            const NEXT_SEQ_KEY = 'nexAssetManager_nextSeq_v1'; // sequence after {MM}{YY}
-            const QUALITY = 0.9;
-            const THUMB_SIZE = 512;
-
-            /* ---------- State ---------- */
-            let assets = loadAssets();
-            let prefs = loadPrefs();
-            if (!['home', 'pull', 'settings'].includes(prefs.view)) prefs.view = 'home';
-            let view = prefs.view || 'home';
-            let currentFilter = prefs.filter || null;
-            let newestIdTransient = null;
-            const selectedIds = new Set();
-            let retakeTargetId = null;
-
-            /* Fullscreen state */
-            let fsOpen = false, fsScale = 1, fsOffsetX = 0, fsOffsetY = 0, fsBaseW = 0, fsBaseH = 0;
-            const fsPointers = new Map();
-            let fsStartScale = 1, fsStartDistance = 0, fsStartMid = { x: 0, y: 0 };
-            let fsPanRef = null, fsTapRef = null;
-
-            /* ---------- Elements ---------- */
-            const el = {
-                btnHome: document.getElementById('btnHome'),
-                btnGoPull: document.getElementById('btnGoPull'),
-                btnGoSettings: document.getElementById('btnGoSettings'),
-                topActions: document.getElementById('topActions'),
-                searchWrap: document.getElementById('searchWrap'),
-                searchInput: document.getElementById('searchInput'),
-                searchBtn: document.getElementById('searchBtn'),
-                clearBtn: document.getElementById('clearBtn'),
-
-                actionMenu: document.getElementById('actionMenu'),
-                btnRetake: document.getElementById('btnRetake'),
-                btnDownload: document.getElementById('btnDownload'),
-                btnPrint: document.getElementById('btnPrint'),
-                btnPull: document.getElementById('btnPull'),
-                btnSold: document.getElementById('btnSold'),
-                btnDetails: document.getElementById('btnDetails'),
-                btnDelete: document.getElementById('btnDelete'),
-                menuStatus: document.getElementById('menuStatus'),
-
-                homeView: document.getElementById('homeView'),
-                gallery: document.getElementById('gallery'),
-                emptyState: document.getElementById('emptyState'),
-
-                pullView: document.getElementById('pullView'),
-                pullGallery: document.getElementById('pullGallery'),
-                pullEmpty: document.getElementById('pullEmpty'),
-
-                settingsView: document.getElementById('settingsView'),
-                set_printer: document.getElementById('set_printer'),
-                set_folder: document.getElementById('set_folder'),
-                set_silent: document.getElementById('set_silent'),
-                set_newmins: document.getElementById('set_newmins'),
-                set_save: document.getElementById('set_save'),
-                btnResetNumbering: document.getElementById('btnResetNumbering'),
-
-                fileInput: document.getElementById('fileInput'),
-
-                backdrop: document.getElementById('backdrop'),
-                modalTitle: document.getElementById('modalTitle'),
-                modalBody: document.getElementById('modalBody'),
-                modalOk: document.getElementById('modalOk'),
-                modalCancel: document.getElementById('modalCancel'),
-
-                fsBackdrop: document.getElementById('fsBackdrop'),
-                fsImg: document.getElementById('fsImg'),
-            };
-
-            /* ---------- Init ---------- */
-            if (currentFilter) el.searchInput.value = currentFilter;
-            el.set_printer.value = prefs.defaultPrinter || '';
-            el.set_folder.value = prefs.defaultFolder || '';
-            el.set_silent.checked = !!prefs.silentPrint;
-            el.set_newmins.value = (prefs.newBadgeMinutes != null ? prefs.newBadgeMinutes : 5);
-            renderAll();
-
-            /* ---------- Nav ---------- */
-            el.btnHome.addEventListener('click', () => navigate('home'));
-            el.btnGoPull.addEventListener('click', () => navigate('pull'));
-            el.btnGoSettings.addEventListener('click', () => navigate('settings'));
-            function navigate(dest) { view = dest; prefs.view = dest; persistPrefs(); clearSelection(); renderAll(); }
-
-            /* ---------- Search (Home) ---------- */
-            el.searchBtn.addEventListener('click', () => doSearch());
-            el.clearBtn.addEventListener('click', () => { currentFilter = null; el.searchInput.value = ''; clearSelection(); prefs.filter = null; persistPrefs(); renderAll(); });
-            el.searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
-            function doSearch() { const q = (el.searchInput.value || '').trim(); currentFilter = q || null; prefs.filter = currentFilter; persistPrefs(); clearSelection(); renderAll(); }
-
-            /* ---------- Action Menu ---------- */
-            el.btnRetake.addEventListener('click', () => {
-                if (!isEnabled(el.btnRetake)) return;
-                const id = getSingleSelectedId(); if (!id) return;
-                retakeTargetId = id; el.fileInput.click();
-            });
-            el.btnDownload.addEventListener('click', () => {
-                if (!isEnabled(el.btnDownload)) return;
-                getSelectedList().forEach(id => {
-                    const a = findAsset(id); if (!a) return;
-                    const link = document.createElement('a'); link.href = a.fullDataUrl; link.download = a.filename; document.body.appendChild(link); link.click(); link.remove();
-                });
-            });
-            el.btnPrint.addEventListener('click', () => {
-                if (!isEnabled(el.btnPrint)) return;
-                const items = getSelectedList().map(id => findAsset(id)).filter(Boolean);
-                const w = window.open('', '_blank'); if (!w) return;
-                const html = buildPrintHTML(items); w.document.open(); w.document.write(html); w.document.close(); w.focus();
-                w.onload = () => { try { w.print(); } catch (e) { } };
-            });
-            el.btnPull.addEventListener('click', async () => {
-                if (!isEnabled(el.btnPull)) return;
-                const ids = getSelectedList();
-                const ok = await confirmModal(`Add ${ids.length} asset(s) to Pull Display?`);
-                if (!ok) return;
-                ids.forEach(id => { const a = findAsset(id); if (a) a.status = 'Pull'; });
-                saveAssets(); renderAll();
-            });
-            el.btnSold.addEventListener('click', async () => {
-                if (!isEnabled(el.btnSold)) return;
-                const ids = getSelectedList();
-                const ok = await confirmModal(`Mark ${ids.length} asset(s) as Sold?`);
-                if (!ok) return;
-                ids.forEach(id => { const a = findAsset(id); if (a) a.status = 'Sold'; });
-                saveAssets(); renderAll();
-            });
-            el.btnDetails.addEventListener('click', async () => {
-                if (!isEnabled(el.btnDetails)) return;
-                const id = getSingleSelectedId(); if (!id) return;
-                const a = findAsset(id);
-                const updated = await detailsModal(a);
-                if (updated) { Object.assign(a, updated); saveAssets(); renderAll(); }
-            });
-            el.btnDelete.addEventListener('click', async () => {
-                if (!isEnabled(el.btnDelete)) return;
-                const ids = getSelectedList();
-                const ok = await confirmModal(`Delete ${ids.length} asset(s)? This cannot be undone.`);
-                if (!ok) return;
-                assets = assets.filter(a => !ids.includes(a.id));
-                saveAssets(); clearSelection(); renderAll();
-            });
-
-            /* ---------- Pull View ---------- */
-            function renderPullView() {
-                const list = assets.filter(a => a.status === 'Pull');
-                el.pullGallery.innerHTML = ''; el.pullEmpty.style.display = list.length ? 'none' : 'block';
-                for (const a of list) {
-                    const card = document.createElement('div'); card.className = 'card'; card.dataset.id = a.id;
-                    const img = document.createElement('img'); img.className = 'thumb'; img.alt = `Asset ${a.id}`; img.src = a.thumbDataUrl; img.style.cursor = 'zoom-in';
-                    img.addEventListener('click', () => openFs(a.fullDataUrl)); card.appendChild(img);
-                    const footer = document.createElement('div'); footer.className = 'card-footer';
-                    const left = document.createElement('div'); left.className = 'left-meta';
-                    const assetSpan = document.createElement('div'); assetSpan.className = 'asset'; assetSpan.textContent = a.id; left.appendChild(assetSpan);
-                    const pulledBtn = document.createElement('button'); pulledBtn.className = 'pulled-btn'; pulledBtn.textContent = 'Pulled';
-                    pulledBtn.addEventListener('click', () => { a.status = null; a.createdAt = Date.now(); newestIdTransient = a.id; saveAssets(); renderAll(); });
-                    footer.appendChild(left); footer.appendChild(pulledBtn); card.appendChild(footer);
-                    el.pullGallery.appendChild(card);
-                }
-            }
-
-            /* ---------- Settings ---------- */
-            el.set_save.addEventListener('click', () => {
-                const mins = clampInt(parseInt(el.set_newmins.value || '0', 10), 0, 1440);
-                prefs.defaultPrinter = (el.set_printer.value || '').trim();
-                prefs.defaultFolder = (el.set_folder.value || '').trim();
-                prefs.silentPrint = !!el.set_silent.checked;
-                prefs.newBadgeMinutes = mins;
-                persistPrefs(); renderAll();
-            });
-            el.btnResetNumbering.addEventListener('click', async () => {
-                const ok = await openModal({
-                    title: 'Reset Item Numbering',
-                    bodyHTML: `
-            <div style="line-height:1.45">
-              <p><strong>Are you sure?</strong></p>
-              <p>This sets the <strong>next sequence</strong> to <strong>1</strong>. Existing assets keep their numbers.</p>
-              <p>No duplicates: if <code>{MM}{YY}{SEQ}</code> exists, it will auto‑increment to the next available value.</p>
-            </div>`,
-                    okText: 'Reset', cancelText: 'Cancel'
-                });
-                if (!ok) return;
-                localStorage.setItem(NEXT_SEQ_KEY, '1');
-            });
-
-            /* ---------- File Input (Add / Retake) ---------- */
-            el.fileInput.addEventListener('change', onFilePicked);
-            async function onFilePicked(e) {
-                const file = e.target.files?.[0]; e.target.value = ''; if (!file) { retakeTargetId = null; return; }
-                const imgBitmap = await readImageAsBitmap(file);
-                if (retakeTargetId) {
-                    const target = findAsset(retakeTargetId); retakeTargetId = null; if (!target) return;
-                    const stamped = await drawWithStamp(imgBitmap, target.id);
-                    const thumb = await makeSquareThumb(stamped, THUMB_SIZE);
-                    target.fullDataUrl = stamped; target.thumbDataUrl = thumb; target.updatedAt = Date.now();
-                    saveAssets(); renderAll(); return;
-                }
-                // Add new
-                const { id } = getNextIdUnique();
-                const filename = `${id}.jpg`;
-                const stamped = await drawWithStamp(imgBitmap, id);
-                const thumb = await makeSquareThumb(stamped, THUMB_SIZE);
-                const asset = { id, filename, fullDataUrl: stamped, thumbDataUrl: thumb, createdAt: Date.now(), updatedAt: null, status: null, price: null, weightLbs: null, notes: '' };
-                assets.unshift(asset); saveAssets(); newestIdTransient = id; renderAll();
-            }
-
-            /* ---------- Rendering ---------- */
-            function renderAll() {
-                const onHome = (view === 'home'), onPull = (view === 'pull'), onSettings = (view === 'settings');
-
-                // Header pieces
-                el.btnHome.hidden = onHome;                       // show Home icon on Pull/Settings
-                el.topActions.style.display = onHome ? 'inline-flex' : 'none';
-                el.searchWrap.style.display = onHome ? 'flex' : 'none';
-
-                // Sections
-                el.actionMenu.style.display = onHome ? 'flex' : 'none';
-                el.homeView.style.display = onHome ? 'block' : 'none';
-                el.pullView.style.display = onPull ? 'block' : 'none';
-                el.settingsView.style.display = onSettings ? 'block' : 'none';
-
-                if (onHome) renderHome();
-                if (onPull) renderPullView();
-                updateMenu();
-            }
-
-            function renderHome() {
-                const list = currentFilter ? assets.filter(a => a.id === currentFilter) : assets;
-                el.gallery.innerHTML = ''; el.emptyState.style.display = list.length ? 'none' : 'block';
-
-                // Add tile
-                const addCard = document.createElement('div');
-                addCard.className = 'card add-tile'; addCard.role = 'button'; addCard.title = 'Add image'; addCard.tabIndex = 0;
-                addCard.addEventListener('click', () => { retakeTargetId = null; el.fileInput.click(); });
-                addCard.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); retakeTargetId = null; el.fileInput.click(); } });
-                const plus = document.createElement('div'); plus.className = 'add-plus'; plus.textContent = '+';
-                addCard.appendChild(plus); el.gallery.appendChild(addCard);
-
-                for (const a of list) {
-                    const card = document.createElement('div'); card.className = 'card'; card.dataset.id = a.id;
-
-                    const img = document.createElement('img'); img.className = 'thumb'; img.alt = `Asset ${a.id}`; img.src = a.thumbDataUrl; card.appendChild(img);
-
-                    const overlay = document.createElement('div'); overlay.className = 'sel-overlay';
-                    const chip = document.createElement('div'); chip.className = 'sel-chip';
-                    chip.innerHTML = `<span class="dot"></span><span>${selectedIds.has(a.id) ? 'Selected' : 'Select'}</span>`;
-                    overlay.appendChild(chip); card.appendChild(overlay);
-
-                    if (shouldShowNewBadge(a) || a.id === newestIdTransient) {
-                        const badge = document.createElement('div'); badge.className = 'badge-new'; badge.title = 'New'; badge.textContent = '*';
-                        card.appendChild(badge);
-                    }
-
-                    const footer = document.createElement('div'); footer.className = 'card-footer';
-                    const left = document.createElement('div'); left.className = 'left-meta';
-                    const assetSpan = document.createElement('div'); assetSpan.className = 'asset'; assetSpan.textContent = a.id;
-                    const fileSpan = document.createElement('div'); fileSpan.className = 'file'; fileSpan.textContent = a.filename;
-                    const tags = document.createElement('div'); tags.className = 'tags';
-                    if (a.status === 'Pull') { const t = document.createElement('span'); t.className = 'tag pull'; t.textContent = 'Pull'; tags.appendChild(t); }
-                    if (a.status === 'Sold') { const t = document.createElement('span'); t.className = 'tag sold'; t.textContent = 'Sold'; tags.appendChild(t); }
-                    left.appendChild(assetSpan); left.appendChild(fileSpan); if (tags.children.length) left.appendChild(tags);
-
-                    const dl = document.createElement('a'); dl.className = 'dl'; dl.href = a.fullDataUrl; dl.download = a.filename; dl.textContent = 'Download';
-
-                    footer.appendChild(left); footer.appendChild(dl); card.appendChild(footer);
-
-                    if (selectedIds.has(a.id)) card.classList.add('selected');
-                    card.addEventListener('click', (ev) => { if (ev.target === dl) return; toggleCardSelection(a.id); });
-
-                    el.gallery.appendChild(card);
-                }
-                newestIdTransient = null;
-            }
-
-            function shouldShowNewBadge(a) {
-                const minutes = (prefs.newBadgeMinutes != null) ? prefs.newBadgeMinutes : 5;
-                if (minutes <= 0) return false;
-                const since = Date.now() - (a.createdAt || 0);
-                return since <= minutes * 60 * 1000;
-            }
-
-            /* ---------- Selection ---------- */
-            function toggleCardSelection(id) { if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateMenu(); refreshCardSelection(); }
-            function refreshCardSelection() {
-                document.querySelectorAll('.card[data-id]').forEach(c => {
-                    c.classList.toggle('selected', selectedIds.has(c.dataset.id));
-                    const chip = c.querySelector('.sel-chip span:last-child');
-                    if (chip) chip.textContent = selectedIds.has(c.dataset.id) ? 'Selected' : 'Select';
-                });
-            }
-            function updateMenu() {
-                const count = selectedIds.size; el.menuStatus.textContent = count === 0 ? 'No selection' : `${count} selected`;
-                const enableAll = (count === 1), enableMulti = (count >= 1);
-                setEnabled(el.btnRetake, enableAll);
-                setEnabled(el.btnDetails, enableAll);
-                setEnabled(el.btnDownload, enableMulti);
-                setEnabled(el.btnPrint, enableMulti);
-                setEnabled(el.btnPull, enableMulti);
-                setEnabled(el.btnSold, enableMulti);
-                setEnabled(el.btnDelete, enableMulti, { danger: enableMulti });
-            }
-            function setEnabled(button, enabled, { danger = false } = {}) {
-                button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
-                button.classList.toggle('enabled', enabled);
-                if (danger) button.classList.add('danger'); else button.classList.remove('danger');
-            }
-            function isEnabled(button) { return button.getAttribute('aria-disabled') === 'false'; }
-            function clearSelection() { selectedIds.clear(); }
-            function getSingleSelectedId() { return selectedIds.size === 1 ? selectedIds.values().next().value : null; }
-            function getSelectedList() { return Array.from(selectedIds); }
-            function findAsset(id) { return assets.find(a => a.id === id); }
-
-            /* ---------- Storage ---------- */
-            function loadAssets() { try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch { return []; } }
-            function saveAssets() { localStorage.setItem(DB_KEY, JSON.stringify(assets)); }
-            function loadPrefs() { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; } }
-            function persistPrefs() { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
-
-            // New format: {MM}{YY}{SEQ}, with uniqueness check
-            function getNextIdUnique() {
-                const now = new Date();
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yy = String(now.getFullYear()).slice(-2);
-                let seq = parseInt(localStorage.getItem(NEXT_SEQ_KEY) || '1', 10);
-                const used = new Set(assets.map(a => a.id));
-                let id = `${mm}${yy}${seq}`;
-                while (used.has(id)) { seq += 1; id = `${mm}${yy}${seq}`; }
-                localStorage.setItem(NEXT_SEQ_KEY, String(seq + 1));
-                return { id, mm, yy, seq };
-            }
-
-            /* ---------- Image processing ---------- */
-            async function readImageAsBitmap(file) {
-                if (window.createImageBitmap) {
-                    try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); }
-                    catch { try { return await createImageBitmap(file); } catch { } }
-                }
-                const url = URL.createObjectURL(file);
-                const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
-                const bmp = await createImageBitmap(img);
-                URL.revokeObjectURL(url);
-                return bmp;
-            }
-            async function drawWithStamp(bitmap, id) {
-                const w = bitmap.width, h = bitmap.height;
-                const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0);
-                const pad = Math.max(12, Math.floor(Math.min(w, h) * 0.012));
-                const fontSize = Math.max(28, Math.floor(Math.min(w, h) * 0.03));
-                ctx.font = `700 ${fontSize}px ui-sans-serif, Segoe UI, Roboto, Arial`;
-                const text = id, tm = ctx.measureText(text);
-                const boxW = Math.ceil(tm.width + pad * 2), boxH = Math.ceil(fontSize + pad * 1.4);
-                ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(pad, pad, boxW, boxH);
-                ctx.fillStyle = '#fff'; ctx.textBaseline = 'top'; ctx.fillText(text, pad + (pad * 0.6), pad + (pad * 0.4));
-                return canvas.toDataURL('image/jpeg', QUALITY);
-            }
-            async function makeSquareThumb(dataUrl, size) {
-                const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = dataUrl; });
-                const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
-                const ctx = canvas.getContext('2d'); const srcW = img.width, srcH = img.height;
-                const scale = Math.max(size / srcW, size / srcH); const drawW = srcW * scale, drawH = srcH * scale;
-                const dx = (size - drawW) / 2, dy = (size - drawH) / 2;
-                ctx.fillStyle = '#0b1222'; ctx.fillRect(0, 0, size, size);
-                ctx.drawImage(img, dx, dy, drawW, drawH);
-                return canvas.toDataURL('image/jpeg', 0.85);
-            }
-
-            /* ---------- Print (labels only: asset ID) ---------- */
-            function buildPrintHTML(items) {
-                const rows = items.map(a => `<div class="label"><div class="asset">${escapeHtml(a.id)}</div></div>`).join('');
-                return `<!doctype html><html><head><meta charset="utf-8" /><title>Print Labels</title>
-          <style>@page{size:auto;margin:6mm}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.label{page-break-inside:avoid;margin:0 0 8mm 0}.asset{font-size:48pt;font-weight:800}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
-          </head><body>${rows}</body></html>`;
-            }
-
-            /* ---------- Modals ---------- */
-            function openModal({ title, bodyHTML, okText = 'OK', cancelText = 'Cancel' }) {
-                el.modalTitle.textContent = title;
-                el.modalBody.innerHTML = bodyHTML;
-                el.modalOk.textContent = okText;
-                el.modalCancel.textContent = cancelText;
-                el.backdrop.classList.add('show'); el.backdrop.setAttribute('aria-hidden', 'false');
-                return new Promise(resolve => {
-                    function cleanup(result) { el.backdrop.classList.remove('show'); el.backdrop.setAttribute('aria-hidden', 'true'); el.modalOk.onclick = null; el.modalCancel.onclick = null; el.backdrop.onclick = null; resolve(result); }
-                    el.modalOk.onclick = () => cleanup(true);
-                    el.modalCancel.onclick = () => cleanup(false);
-                    el.backdrop.onclick = (e) => { if (e.target === el.backdrop) cleanup(false); };
-                });
-            }
-            async function confirmModal(msg) { return openModal({ title: 'Confirm', bodyHTML: `<div>${escapeHtml(msg)}</div>`, okText: 'Confirm', cancelText: 'Cancel' }); }
-            async function detailsModal(asset) {
-                const priceVal = asset.price ?? '', weightVal = asset.weightLbs ?? '', notesVal = asset.notes || '';
-                const body = `
-          <div class="field"><div><strong>Asset:</strong> ${escapeHtml(asset.id)}</div></div>
-          <div class="twocol">
-            <div class="field"><label for="f_price">Price (USD)</label><input id="f_price" type="number" step="0.01" min="0" placeholder="e.g., 249.99" value="${escapeAttr(priceVal)}" /></div>
-            <div class="field"><label for="f_weight">Weight (lbs)</label><input id="f_weight" type="number" step="0.01" min="0" placeholder="e.g., 12.5" value="${escapeAttr(weightVal)}" /></div>
+    <!-- CAPTURE view -->
+    <section id="captureView" style="display:none;">
+      <div class="capture">
+        <div class="cap-box">
+          <video id="capVideo" class="cap-video" autoplay playsinline muted></video>
+          <canvas id="capCanvas" style="display:none;"></canvas>
+          <div class="cap-overlay" id="capOverlay" hidden><span>Next ID:</span><span id="capOverlayId">—</span></div>
+        </div>
+        <div class="cap-controls">
+          <div class="field">
+            <label>Next ID</label>
+            <div class="nextid" id="capNextId">—</div>
+            <div class="cap-note">Tap <strong>New</strong> to allocate the next slot, print the label, then tap <strong>Save</strong> to capture and add to inventory.</div>
           </div>
-          <div class="field"><label for="f_notes">Notes</label><textarea id="f_notes" rows="5" placeholder="Add notes...">${escapeHtml(notesVal)}</textarea></div>`;
-                const ok = await openModal({ title: 'Asset Details', bodyHTML: body, okText: 'Save', cancelText: 'Cancel' });
-                if (!ok) return null;
-                const price = parseNum(document.getElementById('f_price').value);
-                const weight = parseNum(document.getElementById('f_weight').value);
-                const notes = (document.getElementById('f_notes').value || '').trim();
-                if (price != null && price < 0) return null;
-                if (weight != null && weight < 0) return null;
-                return { price: price != null ? round2(price) : null, weightLbs: weight != null ? round2(weight) : null, notes };
-            }
+          <div class="cap-buttons">
+            <button id="capNewBtn" class="btn" type="button">New</button>
+            <button id="capSaveBtn" class="btn" type="button" disabled>Save</button>
+            <button id="capStopBtn" class="btn secondary" type="button">Stop Camera</button>
+          </div>
+          <div class="field">
+            <label>Last Saved</label>
+            <div id="capLast" class="cap-last empty">No capture yet.</div>
+          </div>
+          <div class="field">
+            <label>Camera status</label>
+            <div id="capStatus" class="cap-note">Initializing…</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            /* ---------- Fullscreen (Pull) ---------- */
-            function openFs(src) {
-                el.fsImg.src = src; fsScale = 1; fsOffsetX = 0; fsOffsetY = 0; fsApply();
-                el.fsBackdrop.classList.add('show'); el.fsBackdrop.setAttribute('aria-hidden', 'false');
-                document.documentElement.style.overflow = 'hidden'; fsOpen = true;
-                requestAnimationFrame(() => { const r = el.fsImg.getBoundingClientRect(); fsBaseW = r.width; fsBaseH = r.height; });
-            }
-            function closeFs() {
-                if (!fsOpen) return;
-                fsOpen = false; el.fsBackdrop.classList.remove('show'); el.fsBackdrop.setAttribute('aria-hidden', 'true');
-                document.documentElement.style.overflow = ''; fsPointers.clear(); fsPanRef = null; fsTapRef = null;
-            }
-            function fsApply() {
-                const maxX = Math.max(0, (fsBaseW * fsScale - fsBaseW) / 2);
-                const maxY = Math.max(0, (fsBaseH * fsScale - fsBaseH) / 2);
-                fsOffsetX = clamp(fsOffsetX, -maxX, maxX);
-                fsOffsetY = clamp(fsOffsetY, -maxY, maxY);
-                el.fsImg.style.transform = `translate(-50%, -50%) translate(${fsOffsetX}px, ${fsOffsetY}px) scale(${fsScale})`;
-            }
-            el.fsBackdrop.addEventListener('pointerdown', (e) => {
-                if (!fsOpen) return;
-                el.fsBackdrop.setPointerCapture(e.pointerId);
-                fsPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-                if (fsPointers.size === 1) { fsPanRef = { x: e.clientX, y: e.clientY, offsetX: fsOffsetX, offsetY: fsOffsetY }; fsTapRef = { x: e.clientX, y: e.clientY, t: performance.now() }; }
-                else if (fsPointers.size === 2) {
-                    const [p1, p2] = Array.from(fsPointers.values());
-                    fsStartDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y); fsStartScale = fsScale; fsStartMid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }; fsTapRef = null;
-                }
-            });
-            el.fsBackdrop.addEventListener('pointermove', (e) => {
-                if (!fsOpen) return; if (!fsPointers.has(e.pointerId)) return;
-                fsPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-                if (fsPointers.size === 2) {
-                    const [p1, p2] = Array.from(fsPointers.values());
-                    const curDist = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
-                    const nextScale = clamp((curDist / (fsStartDistance || 1)) * fsStartScale, 1, 6);
-                    const curMid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }; fsOffsetX += (curMid.x - fsStartMid.x); fsOffsetY += (curMid.y - fsStartMid.y);
-                    fsStartMid = curMid; fsScale = nextScale; fsApply();
-                } else if (fsPointers.size === 1 && fsPanRef && fsScale > 1) {
-                    const p = fsPointers.values().next().value; fsOffsetX = fsPanRef.offsetX + (p.x - fsPanRef.x); fsOffsetY = fsPanRef.offsetY + (p.y - fsPanRef.y); fsApply();
-                }
-            });
-            el.fsBackdrop.addEventListener('pointerup', (e) => {
-                if (!fsOpen) return; fsPointers.delete(e.pointerId);
-                if (fsPointers.size === 0 && fsTapRef) {
-                    const dt = performance.now() - fsTapRef.t, dx = Math.abs(e.clientX - fsTapRef.x), dy = Math.abs(e.clientY - fsTapRef.y);
-                    if (dt < 250 && dx < 8 && dy < 8) { closeFs(); return; }
-                }
-                if (fsPointers.size === 1) { const p = fsPointers.values().next().value; fsPanRef = { x: p.x, y: p.y, offsetX: fsOffsetX, offsetY: fsOffsetY }; } else { fsPanRef = null; }
-            });
-            el.fsBackdrop.addEventListener('pointercancel', (e) => { fsPointers.delete(e.pointerId); fsPanRef = null; });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFs(); });
+    <!-- PULL DISPLAY view -->
+    <section id="pullView" style="display:none;">
+      <div id="pullEmpty" class="empty">No items in Pull Display.</div>
+      <div id="pullGallery" class="gallery" aria-live="polite"></div>
+    </section>
 
-            /* ---------- Helpers ---------- */
-            function parseNum(v) { if (v == null || v === '') return null; const n = Number(v); return isFinite(n) ? n : null; }
-            function round2(n) { return Math.round(n * 100) / 100; }
-            function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-            function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c])); }
-            function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+    <!-- SETTINGS view -->
+    <section id="settingsView" style="display:none;">
+      <div class="card" style="padding:16px;">
+        <h2 style="margin:0 0 12px 0;">Settings</h2>
 
-        })();
-    </script>
+        <div class="field">
+          <label for="set_printer">Default printer (label)</label>
+          <input id="set_printer" type="text" placeholder="e.g., Zebra ZD420" />
+          <div class="subtle">Web pages can’t pick printers directly; stored for reference / future integrations.</div>
+        </div>
+
+        <div class="field">
+          <label for="set_folder">Default save folder</label>
+          <input id="set_folder" type="text" placeholder="e.g., C:\\Labels or /Users/you/Downloads/Labels" />
+          <div class="subtle">Browsers save to their configured download folder; this value is informational only.</div>
+        </div>
+
+        <div class="field">
+          <label><input id="set_silent" type="checkbox" /> Attempt silent print (where supported)</label>
+          <div class="subtle">Most browsers still show a print dialog. Kiosk/managed setups may allow silent printing.</div>
+        </div>
+
+        <div class="field">
+          <label for="set_new_badge_minutes">“New” item badge timer (minutes, max 1440)</label>
+          <input id="set_new_badge_minutes" type="number" min="0" max="1440" step="1" />
+        </div>
+
+        <hr style="border:0;border-top:1px solid #374151;margin:16px 0;" />
+
+        <div class="field">
+          <label for="set_boxes">Boxes (comma-separated letters, order matters)</label>
+          <input id="set_boxes" type="text" placeholder="A,B,C,D" />
+        </div>
+
+        <div class="field">
+          <label for="set_box_capacity">Items per box</label>
+          <input id="set_box_capacity" type="number" min="1" max="9999" placeholder="12" />
+          <div class="subtle">With 12, Box A is 0001–0012, Box B is 0013–0024, etc.</div>
+        </div>
+
+        <div class="field">
+          <label>Capacity Summary</label>
+          <div id="capacity_summary" class="subtle"></div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #374151;margin:16px 0;" />
+
+        <div class="field">
+          <label>Reference</label>
+          <div class="subtle">
+            Asset ID format: <code>{SSSS}{B}{v}</code>. Example: <code>0028B2</code> (slot&nbsp;0028, box&nbsp;B, version&nbsp;2).
+          </div>
+        </div>
+
+        <div class="field" style="padding:12px;border:1px solid #7f1d1d;border-radius:10px;background:rgba(127,29,29,.15);">
+          <label style="color:#fecaca;"><strong>Reset item numbering (legacy)</strong></label>
+          <div class="subtle" style="color:#fecaca;">
+            ⚠️ <strong>Attention:</strong> This sets the <strong>next sequence</strong> to <strong>1</strong> (legacy scheme). Existing assets keep their numbers.
+            The app will <strong>not</strong> duplicate any ID—if a generated legacy ID exists, it auto‑increments until unique.
+          </div>
+          <div style="margin-top:8px;display:flex;justify-content:flex-end;gap:8px;">
+            <button id="btnResetNumbering" class="btn action danger" type="button">Reset numbering</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+          <button id="set_save" class="btn">Save Settings</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pinned action menu (Home only) -->
+    <nav id="actionMenu" class="menu" aria-label="Asset actions">
+      <button id="btnRetake" class="btn action" type="button" aria-disabled="true">Retake</button>
+      <button id="btnDownload" class="btn action" type="button" aria-disabled="true">Download</button>
+      <button id="btnPrint" class="btn action" type="button" aria-disabled="true">Print</button>
+      <button id="btnPull" class="btn action" type="button" aria-disabled="true">Pull</button>
+      <button id="btnSold" class="btn action" type="button" aria-disabled="true">Sold</button>
+      <button id="btnRemove" class="btn action" type="button" aria-disabled="true">Remove</button>
+      <button id="btnDetails" class="btn action" type="button" aria-disabled="true">Details</button>
+      <button id="btnDelete" class="btn action danger" type="button" aria-disabled="true">Delete</button>
+      <div class="spacer"></div>
+      <div id="menuStatus" class="status" aria-live="polite">No selection</div>
+    </nav>
+  </main>
+
+  <input id="fileInput" type="file" accept="image/*" capture hidden />
+
+  <div id="backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document">
+      <header><strong id="modalTitle">Details</strong></header>
+      <div class="body" id="modalBody"></div>
+      <footer id="modalFooter">
+        <button id="modalCancel" class="btn secondary" type="button">Cancel</button>
+        <button id="modalOk" class="btn" type="button">OK</button>
+      </footer>
+    </div>
+  </div>
+
+  <div id="fsBackdrop" class="fs-backdrop" aria-hidden="true">
+    <img id="fsImg" class="fs-img" alt="Fullscreen preview" />
+  </div>
+
+  <script>
+  (() => {
+    /* ---------- Keys & config ---------- */
+    const DB_KEY       = 'nexAssetManager_assets_v1';
+    const PREFS_KEY    = 'nexAssetManager_prefs_v1';
+    const NEXT_SEQ_KEY = 'nexAssetManager_nextSeq_v1'; // legacy sequence after {MM}{YY}
+    const QUALITY      = 0.9;
+    const THUMB_SIZE   = 512;
+
+    /* ---------- State ---------- */
+    let assets = loadAssets();
+    let preferences = loadPreferences();
+    if (!['home', 'pull', 'settings', 'capture'].includes(preferences.view)) preferences.view = 'home';
+    let currentView   = preferences.view || 'home';
+    let currentFilter = preferences.filter || null;
+    let newestIdTransient = null;
+    const selectedIds = new Set();
+    let retakeTargetId = null;
+
+    /* Capture page state */
+    let mediaStream = null;
+    let pendingCapture = null; // {slot, version, id}
+    let lastSavedDataUrl = null;
+
+    /* Fullscreen state */
+    let fsOpen = false, fsScale = 1, fsOffsetX = 0, fsOffsetY = 0, fsBaseW = 0, fsBaseH = 0;
+    const fsPointers = new Map();
+    let fsStartScale = 1, fsStartDistance = 0, fsStartMid = { x: 0, y: 0 };
+    let fsPanRef = null, fsTapRef = null;
+
+    /* ---------- Elements ---------- */
+    const el = {
+      btnHome: document.getElementById('btnHome'),
+      btnGoPull: document.getElementById('btnGoPull'),
+      btnGoSettings: document.getElementById('btnGoSettings'),
+      btnGoCapture: document.getElementById('btnGoCapture'),
+
+      topActions: document.getElementById('topActions'),
+      searchWrap: document.getElementById('searchWrap'),
+      searchInput: document.getElementById('searchInput'),
+      searchBtn: document.getElementById('searchBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+
+      actionMenu: document.getElementById('actionMenu'),
+      btnRetake: document.getElementById('btnRetake'),
+      btnDownload: document.getElementById('btnDownload'),
+      btnPrint: document.getElementById('btnPrint'),
+      btnPull: document.getElementById('btnPull'),
+      btnSold: document.getElementById('btnSold'),
+      btnRemove: document.getElementById('btnRemove'),
+      btnDetails: document.getElementById('btnDetails'),
+      btnDelete: document.getElementById('btnDelete'),
+      menuStatus: document.getElementById('menuStatus'),
+
+      homeView: document.getElementById('homeView'),
+      gallery: document.getElementById('gallery'),
+      emptyState: document.getElementById('emptyState'),
+
+      captureView: document.getElementById('captureView'),
+      capVideo: document.getElementById('capVideo'),
+      capCanvas: document.getElementById('capCanvas'),
+      capOverlay: document.getElementById('capOverlay'),
+      capOverlayId: document.getElementById('capOverlayId'),
+      capNextId: document.getElementById('capNextId'),
+      capNewBtn: document.getElementById('capNewBtn'),
+      capSaveBtn: document.getElementById('capSaveBtn'),
+      capStopBtn: document.getElementById('capStopBtn'),
+      capLast: document.getElementById('capLast'),
+      capStatus: document.getElementById('capStatus'),
+
+      pullView: document.getElementById('pullView'),
+      pullGallery: document.getElementById('pullGallery'),
+      pullEmpty: document.getElementById('pullEmpty'),
+
+      settingsView: document.getElementById('settingsView'),
+      set_printer: document.getElementById('set_printer'),
+      set_folder: document.getElementById('set_folder'),
+      set_silent: document.getElementById('set_silent'),
+      newBadgeMinutesInput: document.getElementById('set_new_badge_minutes'),
+      boxesInput: document.getElementById('set_boxes'),
+      boxCapacityInput: document.getElementById('set_box_capacity'),
+      saveSettingsButton: document.getElementById('set_save'),
+      btnResetNumbering: document.getElementById('btnResetNumbering'),
+
+      fileInput: document.getElementById('fileInput'),
+      backdrop: document.getElementById('backdrop'),
+      modalTitle: document.getElementById('modalTitle'),
+      modalBody: document.getElementById('modalBody'),
+      modalOk: document.getElementById('modalOk'),
+      modalCancel: document.getElementById('modalCancel'),
+
+      fsBackdrop: document.getElementById('fsBackdrop'),
+      fsImg: document.getElementById('fsImg'),
+    };
+
+    /* ---------- Defaults & Init ---------- */
+    const DEFAULT_BOXES = ['A','B','C','D'];
+    const DEFAULT_ITEMS_PER_BOX = 12;
+
+    if (!preferences.slotConfig) preferences.slotConfig = {};
+    if (!Array.isArray(preferences.slotConfig.boxes) || !preferences.slotConfig.boxes.length) {
+      preferences.slotConfig.boxes = DEFAULT_BOXES.slice();
+    }
+    if (!Number.isInteger(preferences.slotConfig.boxCapacity) || preferences.slotConfig.boxCapacity <= 0) {
+      preferences.slotConfig.boxCapacity = DEFAULT_ITEMS_PER_BOX;
+    }
+
+    if (currentFilter) el.searchInput.value = currentFilter;
+    el.set_printer.value = preferences.defaultPrinter || '';
+    el.set_folder.value = preferences.defaultFolder || '';
+    el.set_silent.checked = !!preferences.silentPrint;
+    el.newBadgeMinutesInput.value = (preferences.newBadgeMinutes != null ? preferences.newBadgeMinutes : 5);
+    el.boxesInput.value = (preferences.slotConfig.boxes || DEFAULT_BOXES).join(',');
+    el.boxCapacityInput.value = preferences.slotConfig.boxCapacity || DEFAULT_ITEMS_PER_BOX;
+
+    const capacitySummary = document.getElementById('capacity_summary');
+    function refreshCapacitySummary() {
+      const boxes = (preferences.slotConfig.boxes || DEFAULT_BOXES).join(', ');
+      const cap = preferences.slotConfig.boxCapacity || DEFAULT_ITEMS_PER_BOX;
+      const total = (preferences.slotConfig.boxes || DEFAULT_BOXES).length * cap;
+      if (capacitySummary) capacitySummary.textContent =
+        `Boxes: ${boxes} • Items per box: ${cap} • Total slots: ${String(total).padStart(4,'0')}`;
+    }
+    refreshCapacitySummary();
+
+    // Normalize existing assets
+    for (const asset of assets) {
+      if (!asset.slot || !asset.box || !asset.version) {
+        const m = /^(\d{4})([A-Z])(\d+)$/.exec(asset.id || '');
+        if (m) {
+          asset.slot = m[1]; asset.box = m[2]; asset.version = parseInt(m[3], 10) || 1;
+          asset.active = !(asset.status === 'Sold' || asset.status === 'Removed');
+        }
+      }
+      if (typeof asset.active !== 'boolean') {
+        asset.active = !(asset.status === 'Sold' || asset.status === 'Removed');
+      }
+      if (!Array.isArray(asset.events)) asset.events = [];
+    }
+    saveAssets();
+
+    renderAll();
+
+    /* ---------- Navigation ---------- */
+    el.btnHome.addEventListener('click', () => navigate('home'));
+    el.btnGoPull.addEventListener('click', () => navigate('pull'));
+    el.btnGoSettings.addEventListener('click', () => navigate('settings'));
+    el.btnGoCapture.addEventListener('click', () => navigate('capture'));
+
+    async function navigate(dest) {
+      if (currentView === 'capture' && dest !== 'capture') stopCamera();
+      currentView = dest; preferences.view = dest; persistPreferences();
+      clearSelection(); renderAll();
+      if (dest === 'capture') await startCamera();
+    }
+
+    /* ---------- Search ---------- */
+    el.searchBtn.addEventListener('click', () => doSearch());
+    el.clearBtn.addEventListener('click', () => {
+      currentFilter = null; el.searchInput.value = ''; clearSelection(); preferences.filter = null; persistPreferences(); renderAll();
+    });
+    el.searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+    function doSearch() {
+      const q = (el.searchInput.value || '').trim();
+      currentFilter = q || null; preferences.filter = currentFilter; persistPreferences(); clearSelection(); renderAll();
+    }
+
+    /* ---------- Action Menu (Home) ---------- */
+    el.btnRetake.addEventListener('click', () => {
+      if (!isEnabled(el.btnRetake)) return;
+      const id = getSingleSelectedId(); if (!id) return;
+      retakeTargetId = id; el.fileInput.click();
+    });
+
+    el.btnDownload.addEventListener('click', () => {
+      if (!isEnabled(el.btnDownload)) return;
+      getSelectedList().forEach(id => {
+        const a = findAsset(id); if (!a) return;
+        const link = document.createElement('a');
+        link.href = a.fullDataUrl; link.download = a.filename; document.body.appendChild(link);
+        link.click(); link.remove();
+      });
+    });
+
+    el.btnPrint.addEventListener('click', () => {
+      if (!isEnabled(el.btnPrint)) return;
+      const items = getSelectedList().map(id => findAsset(id)).filter(Boolean);
+      printLabelItems(items);
+    });
+
+    el.btnPull.addEventListener('click', async () => {
+      if (!isEnabled(el.btnPull)) return;
+      const ids = getSelectedList();
+      const ok = await confirmModal(`Add ${ids.length} asset(s) to Pull Display?`);
+      if (!ok) return;
+      ids.forEach(id => { const a = findAsset(id); if (a) a.status = 'Pull'; });
+      saveAssets(); renderAll();
+    });
+
+    el.btnSold.addEventListener('click', async () => {
+      if (!isEnabled(el.btnSold)) return;
+      const ids = getSelectedList();
+      const ok = await confirmModal(`Mark ${ids.length} asset(s) as Sold? Slots will be freed.`);
+      if (!ok) return;
+      const t = Date.now();
+      ids.forEach(id => {
+        const a = findAsset(id);
+        if (a) {
+          a.status = 'Sold'; a.active = false; a.updatedAt = t;
+          a.events = a.events || []; a.events.push({ type: 'removed', at: t, reason: 'Sold' });
+        }
+      });
+      saveAssets(); renderAll();
+    });
+
+    el.btnRemove.addEventListener('click', async () => {
+      if (!isEnabled(el.btnRemove)) return;
+      const ids = getSelectedList();
+      const ok = await confirmModal(`Remove ${ids.length} item(s) from inventory? Slots will be freed.`);
+      if (!ok) return;
+      const t = Date.now();
+      ids.forEach(id => {
+        const a = findAsset(id);
+        if (a) {
+          a.status = 'Removed'; a.active = false; a.updatedAt = t;
+          a.events = a.events || []; a.events.push({ type: 'removed', at: t, reason: 'Removed' });
+        }
+      });
+      saveAssets(); clearSelection(); renderAll();
+    });
+
+    el.btnDetails.addEventListener('click', async () => {
+      if (!isEnabled(el.btnDetails)) return;
+      const id = getSingleSelectedId(); if (!id) return;
+      const a = findAsset(id);
+      const updated = await detailsModal(a);
+      if (updated) { Object.assign(a, updated); saveAssets(); renderAll(); }
+    });
+
+    el.btnDelete.addEventListener('click', async () => {
+      if (!isEnabled(el.btnDelete)) return;
+      const ids = getSelectedList();
+      const ok = await confirmModal(`Delete ${ids.length} asset(s)? This cannot be undone.`);
+      if (!ok) return;
+      assets = assets.filter(a => !ids.includes(a.id));
+      saveAssets(); clearSelection(); renderAll();
+    });
+
+    /* ---------- Pull View ---------- */
+    function renderPullView() {
+      const list = assets.filter(a => a.status === 'Pull');
+      el.pullGallery.innerHTML = ''; el.pullEmpty.style.display = list.length ? 'none' : 'block';
+      for (const a of list) {
+        const card = document.createElement('div'); card.className = 'card'; card.dataset.id = a.id;
+        const img = document.createElement('img'); img.className = 'thumb'; img.alt = `Asset ${a.id}`; img.src = a.thumbDataUrl; img.style.cursor = 'zoom-in';
+        img.addEventListener('click', () => openFs(a.fullDataUrl)); card.appendChild(img);
+        const footer = document.createElement('div'); footer.className = 'card-footer';
+        const left = document.createElement('div'); left.className = 'left-meta';
+        const assetSpan = document.createElement('div'); assetSpan.className = 'asset'; assetSpan.textContent = a.id; left.appendChild(assetSpan);
+        const pulledBtn = document.createElement('button'); pulledBtn.className = 'pulled-btn'; pulledBtn.textContent = 'Pulled';
+        pulledBtn.addEventListener('click', () => { a.status = null; a.createdAt = Date.now(); newestIdTransient = a.id; saveAssets(); renderAll(); });
+        footer.appendChild(left); footer.appendChild(pulledBtn); card.appendChild(footer);
+        el.pullGallery.appendChild(card);
+      }
+    }
+
+    /* ---------- Settings ---------- */
+    el.saveSettingsButton.addEventListener('click', () => {
+      const minutes = clampInt(parseInt(el.newBadgeMinutesInput.value || '0', 10), 0, 1440);
+      preferences.defaultPrinter = (el.set_printer.value || '').trim();
+      preferences.defaultFolder = (el.set_folder.value || '').trim();
+      preferences.silentPrint = !!el.set_silent.checked;
+      preferences.newBadgeMinutes = minutes;
+
+      const boxes = (el.boxesInput.value || 'A,B,C,D').split(',').map(s => s.trim().toUpperCase()).filter(s => /^[A-Z]$/.test(s));
+      const itemsPerBox = clampInt(parseInt(el.boxCapacityInput.value || String(DEFAULT_ITEMS_PER_BOX), 10), 1, 9999);
+
+      preferences.slotConfig.boxes = boxes.length ? boxes : DEFAULT_BOXES.slice();
+      preferences.slotConfig.boxCapacity = itemsPerBox;
+
+      persistPreferences();
+      refreshCapacitySummary();
+      renderAll();
+    });
+
+    el.btnResetNumbering.addEventListener('click', async () => {
+      const ok = await openModal({
+        title: 'Reset Item Numbering (Legacy)',
+        bodyHTML: `
+          <div style="line-height:1.45">
+            <p><strong>Are you sure?</strong></p>
+            <p>This sets the <strong>next sequence</strong> to <strong>1</strong> (legacy scheme). Existing assets keep their numbers.</p>
+            <p>No duplicates: if <code>{MM}{YY}{SEQ}</code> exists, it will auto‑increment to the next available value.</p>
+          </div>`,
+        okText: 'Reset', cancelText: 'Cancel'
+      });
+      if (!ok) return;
+      localStorage.setItem(NEXT_SEQ_KEY, '1');
+    });
+
+    /* ---------- File Input (Home Add/Retake) ---------- */
+    el.fileInput.addEventListener('change', onFilePicked);
+    async function onFilePicked(e) {
+      const file = e.target.files?.[0]; e.target.value = ''; if (!file) { retakeTargetId = null; return; }
+      const imgBitmap = await readImageAsBitmap(file);
+
+      if (retakeTargetId) {
+        const target = findAsset(retakeTargetId); retakeTargetId = null; if (!target) return;
+        const stamped = await drawWithStamp(imgBitmap, target.id);
+        const thumb = await makeSquareThumb(stamped, THUMB_SIZE);
+        target.fullDataUrl = stamped; target.thumbDataUrl = thumb; target.updatedAt = Date.now();
+        saveAssets(); renderAll(); return;
+      }
+
+      // (Legacy "Add new" from Home + camera roll) — still supported but capture page is preferred.
+      const freeSlot = findFirstFreeSlot();
+      if (!freeSlot) { await openModal({ title: 'No Free Slot', bodyHTML: '<div>All configured slots are currently occupied.</div>' }); return; }
+      const version = nextVersionForSlot(freeSlot);
+      const id = buildIdFromParts(freeSlot, version);
+      const filename = `${id}.jpg`;
+
+      const stamped = await drawWithStamp(imgBitmap, id);
+      const thumb = await makeSquareThumb(stamped, THUMB_SIZE);
+
+      const nowTs = Date.now();
+      const asset = {
+        id, filename, fullDataUrl: stamped, thumbDataUrl: thumb, createdAt: nowTs, updatedAt: null,
+        status: 'Active', price: null, weightLbs: null, notes: '',
+        slot: freeSlot, box: slotToBox(freeSlot), version, active: true,
+        events: [{ type: 'created', at: nowTs }]
+      };
+      assets.unshift(asset); saveAssets(); newestIdTransient = id; renderAll();
+    }
+
+    /* ---------- CAPTURE PAGE ---------- */
+    el.capNewBtn.addEventListener('click', onCaptureNew);
+    el.capSaveBtn.addEventListener('click', onCaptureSave);
+    el.capStopBtn.addEventListener('click', stopCamera);
+
+    async function startCamera() {
+      try {
+        if (mediaStream) return; // already started
+        el.capStatus.textContent = 'Starting camera…';
+        const constraints = { video: { facingMode: 'environment' } };
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        el.capVideo.srcObject = mediaStream;
+        await el.capVideo.play();
+        el.capStatus.textContent = 'Camera ready';
+        el.capSaveBtn.disabled = false;
+      } catch (err) {
+        mediaStream = null;
+        el.capStatus.textContent = 'Unable to access camera. Check permissions or use a camera-enabled device.';
+        el.capSaveBtn.disabled = true;
+      }
+    }
+    function stopCamera() {
+      if (mediaStream) {
+        for (const t of mediaStream.getTracks()) try { t.stop(); } catch {}
+        mediaStream = null;
+      }
+      el.capVideo.srcObject = null;
+      el.capStatus.textContent = 'Camera stopped';
+    }
+
+    async function onCaptureNew() {
+      // Allocate next ID and print it
+      const freeSlot = findFirstFreeSlot();
+      if (!freeSlot) { await openModal({ title: 'No Free Slot', bodyHTML: '<div>All configured slots are currently occupied.</div>' }); return; }
+      const version = nextVersionForSlot(freeSlot);
+      const id = buildIdFromParts(freeSlot, version);
+      pendingCapture = { slot: freeSlot, version, id };
+
+      // Update UI
+      el.capNextId.textContent = id;
+      el.capOverlayId.textContent = id;
+      el.capOverlay.hidden = false;
+
+      // Print label immediately
+      printLabelItems([{ id }]);
+    }
+
+    async function onCaptureSave() {
+      // Ensure we have an ID (if user forgot to press New)
+      if (!pendingCapture) {
+        const freeSlot = findFirstFreeSlot();
+        if (!freeSlot) { await openModal({ title: 'No Free Slot', bodyHTML: '<div>All configured slots are currently occupied.</div>' }); return; }
+        const version = nextVersionForSlot(freeSlot);
+        const id = buildIdFromParts(freeSlot, version);
+        pendingCapture = { slot: freeSlot, version, id };
+        el.capNextId.textContent = id; el.capOverlayId.textContent = id; el.capOverlay.hidden = false;
+      }
+
+      // Capture current video frame
+      if (!mediaStream || !el.capVideo.videoWidth) {
+        await openModal({ title: 'Camera Not Ready', bodyHTML: '<div>Camera is not ready. Start the camera and try again.</div>' });
+        return;
+      }
+      const w = el.capVideo.videoWidth, h = el.capVideo.videoHeight;
+      el.capCanvas.width = w; el.capCanvas.height = h;
+      const ctx = el.capCanvas.getContext('2d', { willReadFrequently: false });
+      ctx.drawImage(el.capVideo, 0, 0, w, h);
+
+      // Create ImageBitmap from the canvas and stamp ID
+      const frameBitmap = await createImageBitmap(el.capCanvas);
+      const stamped = await drawWithStamp(frameBitmap, pendingCapture.id);
+      const thumb = await makeSquareThumb(stamped, THUMB_SIZE);
+
+      // Build asset and save
+      const nowTs = Date.now();
+      const asset = {
+        id: pendingCapture.id,
+        filename: `${pendingCapture.id}.jpg`,
+        fullDataUrl: stamped,
+        thumbDataUrl: thumb,
+        createdAt: nowTs,
+        updatedAt: null,
+        status: 'Active',
+        price: null,
+        weightLbs: null,
+        notes: '',
+        slot: pendingCapture.slot,
+        box: slotToBox(pendingCapture.slot),
+        version: pendingCapture.version,
+        active: true,
+        events: [{ type: 'created', at: nowTs }]
+      };
+      assets.unshift(asset);
+      saveAssets();
+      newestIdTransient = asset.id;
+
+      // Update Capture "Last Saved" panel (replace previous)
+      lastSavedDataUrl = asset.thumbDataUrl;
+      el.capLast.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = lastSavedDataUrl; img.alt = `Last saved ${asset.id}`;
+      const meta = document.createElement('div');
+      meta.style.marginTop = '6px';
+      meta.textContent = `Saved ${asset.id} at ${new Date(nowTs).toLocaleString()}`;
+      el.capLast.classList.remove('empty');
+      el.capLast.appendChild(img); el.capLast.appendChild(meta);
+
+      // Clear pending (require a fresh New for next item)
+      // (If you prefer auto-advance to next free slot, we can do that instead)
+      pendingCapture = null;
+      el.capNextId.textContent = '—';
+      el.capOverlay.hidden = true;
+
+      // Refresh Home so the new card appears
+      renderAll();
+    }
+
+    /* ---------- Rendering ---------- */
+    function renderAll() {
+      const onHome = (currentView === 'home');
+      const onPull = (currentView === 'pull');
+      const onSettings = (currentView === 'settings');
+      const onCapture = (currentView === 'capture');
+
+      el.btnHome.hidden = onHome;
+      el.topActions.style.display = onHome ? 'inline-flex' : 'none';
+      el.searchWrap.style.display = onHome ? 'flex' : 'none';
+
+      el.homeView.style.display = onHome ? 'block' : 'none';
+      el.pullView.style.display = onPull ? 'block' : 'none';
+      el.settingsView.style.display = onSettings ? 'block' : 'none';
+      el.captureView.style.display = onCapture ? 'block' : 'none';
+
+      // Pinned action bar only on Home
+      el.actionMenu.style.display = onHome ? 'flex' : 'none';
+
+      if (onHome) renderHome();
+      if (onPull) renderPullView();
+
+      updateMenu();
+      updatePinnedMenuHeight();
+    }
+
+    function renderHome() {
+      const q = (currentFilter || '').toUpperCase();
+      const list = q
+        ? assets.filter(a => {
+            const id = (a.id || '').toUpperCase();
+            const slot = (a.slot || '').toUpperCase();
+            const slotBox = (a.slot && a.box) ? (a.slot + a.box).toUpperCase() : '';
+            return id === q || slot === q || slotBox === q;
+          })
+        : assets;
+
+      el.gallery.innerHTML = ''; el.emptyState.style.display = list.length ? 'none' : 'block';
+
+      // Add tile
+      const addCard = document.createElement('div');
+      addCard.className = 'card add-tile'; addCard.role = 'button'; addCard.title = 'Add image'; addCard.tabIndex = 0;
+      addCard.addEventListener('click', () => { retakeTargetId = null; el.fileInput.click(); });
+      addCard.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); retakeTargetId = null; el.fileInput.click(); } });
+      const plus = document.createElement('div'); plus.className = 'add-plus'; plus.textContent = '+';
+      addCard.appendChild(plus); el.gallery.appendChild(addCard);
+
+      for (const a of list) {
+        const card = document.createElement('div'); card.className = 'card'; card.dataset.id = a.id;
+        const img = document.createElement('img'); img.className = 'thumb'; img.alt = `Asset ${a.id}`; img.src = a.thumbDataUrl; card.appendChild(img);
+
+        const overlay = document.createElement('div'); overlay.className = 'sel-overlay';
+        const chip = document.createElement('div'); chip.className = 'sel-chip';
+        chip.innerHTML = `<span class="dot"></span><span>${selectedIds.has(a.id) ? 'Selected' : 'Select'}</span>`;
+        overlay.appendChild(chip); card.appendChild(overlay);
+
+        if (shouldShowNewBadge(a) || a.id === newestIdTransient) {
+          const badge = document.createElement('div'); badge.className = 'badge-new'; badge.title = 'New'; badge.textContent = '*';
+          card.appendChild(badge);
+        }
+
+        const footer = document.createElement('div'); footer.className = 'card-footer';
+        const left = document.createElement('div'); left.className = 'left-meta';
+        const assetSpan = document.createElement('div'); assetSpan.className = 'asset'; assetSpan.textContent = a.id;
+        const fileSpan = document.createElement('div'); fileSpan.className = 'file'; fileSpan.textContent = a.filename;
+        const parts = document.createElement('div'); parts.className = 'file';
+        parts.textContent = `Slot ${a.slot || '—'} • Box ${a.box || '—'} • v${a.version || '—'} • ${a.active ? 'Active' : 'Inactive'}`;
+
+        const tags = document.createElement('div'); tags.className = 'tags';
+        if (a.status === 'Pull') { const t = document.createElement('span'); t.className = 'tag pull'; t.textContent = 'Pull'; tags.appendChild(t); }
+        if (a.status === 'Sold') { const t = document.createElement('span'); t.className = 'tag sold'; t.textContent = 'Sold'; tags.appendChild(t); }
+        if (a.status === 'Removed') { const t = document.createElement('span'); t.className = 'tag removed'; t.textContent = 'Removed'; tags.appendChild(t); }
+
+        left.appendChild(assetSpan); left.appendChild(fileSpan); left.appendChild(parts);
+        if (tags.children.length) left.appendChild(tags);
+
+        const dl = document.createElement('a'); dl.className = 'dl'; dl.href = a.fullDataUrl; dl.download = a.filename; dl.textContent = 'Download';
+        footer.appendChild(left); footer.appendChild(dl); card.appendChild(footer);
+
+        if (selectedIds.has(a.id)) card.classList.add('selected');
+        card.addEventListener('click', (ev) => { if (ev.target === dl) return; toggleCardSelection(a.id); });
+        el.gallery.appendChild(card);
+      }
+      newestIdTransient = null;
+    }
+
+    function shouldShowNewBadge(a) {
+      const minutes = (preferences.newBadgeMinutes != null) ? preferences.newBadgeMinutes : 5;
+      if (minutes <= 0) return false;
+      const since = Date.now() - (a.createdAt || 0);
+      return since <= minutes * 60 * 1000;
+    }
+
+    /* ---------- Selection ---------- */
+    function toggleCardSelection(id) { if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateMenu(); refreshCardSelection(); }
+    function refreshCardSelection() {
+      document.querySelectorAll('.card[data-id]').forEach(c => {
+        c.classList.toggle('selected', selectedIds.has(c.dataset.id));
+        const chip = c.querySelector('.sel-chip span:last-child');
+        if (chip) chip.textContent = selectedIds.has(c.dataset.id) ? 'Selected' : 'Select';
+      });
+    }
+    function updateMenu() {
+      const count = selectedIds.size; el.menuStatus.textContent = count === 0 ? 'No selection' : `${count} selected`;
+      const enableSingle = (count === 1), enableMulti = (count >= 1);
+      setEnabled(el.btnRetake, enableSingle);
+      setEnabled(el.btnDetails, enableSingle);
+      setEnabled(el.btnDownload, enableMulti);
+      setEnabled(el.btnPrint, enableMulti);
+      setEnabled(el.btnPull, enableMulti);
+      setEnabled(el.btnSold, enableMulti);
+      setEnabled(el.btnRemove, enableMulti);
+      setEnabled(el.btnDelete, enableMulti, { danger: enableMulti });
+    }
+    function setEnabled(button, enabled, { danger = false } = {}) {
+      button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+      button.classList.toggle('enabled', enabled);
+      if (danger) button.classList.add('danger'); else button.classList.remove('danger');
+    }
+    function isEnabled(button) { return button.getAttribute('aria-disabled') === 'false'; }
+    function clearSelection() { selectedIds.clear(); }
+    function getSingleSelectedId() { return selectedIds.size === 1 ? selectedIds.values().next().value : null; }
+    function getSelectedList() { return Array.from(selectedIds); }
+    function findAsset(id) { return assets.find(a => a.id === id); }
+
+    /* ---------- Storage ---------- */
+    function loadAssets() { try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch { return []; } }
+    function saveAssets() { localStorage.setItem(DB_KEY, JSON.stringify(assets)); }
+    function loadPreferences() { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; } }
+    function persistPreferences() { localStorage.setItem(PREFS_KEY, JSON.stringify(preferences)); }
+
+    /* ---------- ID helpers (capacity) ---------- */
+    function padSlotNumber(n) { return String(n).padStart(4, '0'); }
+    function slotToBox(slotStr) {
+      const cfg = preferences.slotConfig || {};
+      const boxes = cfg.boxes || DEFAULT_BOXES;
+      const cap = cfg.boxCapacity || DEFAULT_ITEMS_PER_BOX;
+      const s = parseInt(slotStr, 10);
+      if (!isFinite(s) || s <= 0) return null;
+      const boxIndex = Math.floor((s - 1) / cap);
+      return boxes[boxIndex] || null;
+    }
+    function totalSlotsAvailable() {
+      const cfg = preferences.slotConfig || {};
+      const boxes = cfg.boxes || DEFAULT_BOXES;
+      const cap = cfg.boxCapacity || DEFAULT_ITEMS_PER_BOX;
+      return boxes.length * cap;
+    }
+    function isSlotActive(slotStr) {
+      return assets.some(a => a.active && a.slot === slotStr);
+    }
+    function findFirstFreeSlot() {
+      const maxSlots = totalSlotsAvailable();
+      for (let n = 1; n <= maxSlots; n++) {
+        const slot = padSlotNumber(n);
+        if (!isSlotActive(slot)) return slot;
+      }
+      return null;
+    }
+    function nextVersionForSlot(slotStr) {
+      let maxVersion = 0;
+      for (const a of assets) {
+        if (a.slot === slotStr && Number.isInteger(a.version) && a.version > maxVersion) maxVersion = a.version;
+      }
+      return maxVersion + 1;
+    }
+    function buildIdFromParts(slotStr, version) {
+      const box = slotToBox(slotStr) || '?';
+      return `${slotStr}${box}${version}`;
+    }
+
+    /* ---------- Image processing ---------- */
+    async function readImageAsBitmap(file) {
+      if (window.createImageBitmap) {
+        try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+        catch { try { return await createImageBitmap(file); } catch {} }
+      }
+      const url = URL.createObjectURL(file);
+      const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
+      const bmp = await createImageBitmap(img);
+      URL.revokeObjectURL(url);
+      return bmp;
+    }
+    async function drawWithStamp(bitmap, id) {
+      const w = bitmap.width, h = bitmap.height;
+      const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0);
+      const pad = Math.max(12, Math.floor(Math.min(w, h) * 0.012));
+      const fontSize = Math.max(28, Math.floor(Math.min(w, h) * 0.03));
+      ctx.font = `700 ${fontSize}px ui-sans-serif, Segoe UI, Roboto, Arial`;
+      const text = id, tm = ctx.measureText(text);
+      const boxW = Math.ceil(tm.width + pad * 2), boxH = Math.ceil(fontSize + pad * 1.4);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(pad, pad, boxW, boxH);
+      ctx.fillStyle = '#fff'; ctx.textBaseline = 'top'; ctx.fillText(text, pad + (pad * 0.6), pad + (pad * 0.4));
+      return canvas.toDataURL('image/jpeg', QUALITY);
+    }
+    async function makeSquareThumb(dataUrl, size) {
+      const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = dataUrl; });
+      const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d'); const srcW = img.width, srcH = img.height;
+      const scale = Math.max(size / srcW, size / srcH); const drawW = srcW * scale, drawH = srcH * scale;
+      const dx = (size - drawW) / 2, dy = (size - drawH) / 2;
+      ctx.fillStyle = '#0b1222'; ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    }
+
+    /* ---------- Print helpers ---------- */
+    function buildPrintHTML(items) {
+      const rows = items.map(a => `<div class="label"><div class="asset">${escapeHtml(a.id)}</div></div>`).join('');
+      return `<!doctype html><html><head><meta charset="utf-8" /><title>Print Labels</title>
+      <style>@page{size:auto;margin:6mm}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+      .label{page-break-inside:avoid;margin:0 0 8mm 0}.asset{font-size:48pt;font-weight:800}
+      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+      </head><body>${rows}</body></html>`;
+    }
+    function printLabelItems(items) {
+      const w = window.open('', '_blank'); if (!w) return;
+      const html = buildPrintHTML(items); w.document.open(); w.document.write(html); w.document.close(); w.focus();
+      w.onload = () => { try { w.print(); } catch(e){} };
+    }
+
+    /* ---------- Modals ---------- */
+    function openModal({ title, bodyHTML, okText = 'OK', cancelText = 'Cancel' }) {
+      el.modalTitle.textContent = title;
+      el.modalBody.innerHTML = bodyHTML;
+      el.modalOk.textContent = okText;
+      el.modalCancel.textContent = cancelText;
+      el.backdrop.classList.add('show'); el.backdrop.setAttribute('aria-hidden', 'false');
+      return new Promise(resolve => {
+        function cleanup(result) {
+          el.backdrop.classList.remove('show'); el.backdrop.setAttribute('aria-hidden', 'true');
+          el.modalOk.onclick = null; el.modalCancel.onclick = null; el.backdrop.onclick = null; resolve(result);
+        }
+        el.modalOk.onclick = () => cleanup(true);
+        el.modalCancel.onclick = () => cleanup(false);
+        el.backdrop.onclick = (e) => { if (e.target === el.backdrop) cleanup(false); };
+      });
+    }
+    async function confirmModal(msg) { return openModal({ title: 'Confirm', bodyHTML: `<div>${escapeHtml(msg)}</div>`, okText: 'Confirm', cancelText: 'Cancel' }); }
+
+    async function detailsModal(asset) {
+      const priceVal = asset.price ?? '', weightVal = asset.weightLbs ?? '', notesVal = asset.notes || '';
+      const histHtml = (asset.events || []).map(ev => `<li><code>${escapeHtml(ev.type)}</code> — ${new Date(ev.at).toLocaleString()}${ev.reason ? ' • '+escapeHtml(ev.reason) : ''}</li>`).join('');
+
+      const body = `
+        <div class="field"><div><strong>Asset:</strong> ${escapeHtml(asset.id)}</div></div>
+        <div class="two-col">
+          <div class="field"><label for="f_price">Price (USD)</label><input id="f_price" type="number" step="0.01" min="0" placeholder="e.g., 249.99" value="${escapeAttr(priceVal)}" /></div>
+          <div class="field"><label for="f_weight">Weight (lbs)</label><input id="f_weight" type="number" step="0.01" min="0" placeholder="e.g., 12.5" value="${escapeAttr(weightVal)}" /></div>
+        </div>
+        <div class="field"><label for="f_notes">Notes</label><textarea id="f_notes" rows="5" placeholder="Add notes...">${escapeHtml(notesVal)}</textarea></div>
+        <div class="field"><label>Parts</label><div class="subtle">Slot ${escapeHtml(asset.slot || '—')} • Box ${escapeHtml(asset.box || '—')} • v${escapeHtml(asset.version || '—')}</div></div>
+        <div class="field"><label>History</label><ul style="margin:0 0 0 16px">${histHtml || '<li>No events yet</li>'}</ul></div>
+      `;
+      const ok = await openModal({ title: 'Asset Details', bodyHTML: body, okText: 'Save', cancelText: 'Cancel' });
+      if (!ok) return null;
+      const price = parseNum(document.getElementById('f_price').value);
+      const weight = parseNum(document.getElementById('f_weight').value);
+      const notes = (document.getElementById('f_notes').value || '').trim();
+      if (price != null && price < 0) return null;
+      if (weight != null && weight < 0) return null;
+      return { price: price != null ? round2(price) : null, weightLbs: weight != null ? round2(weight) : null, notes };
+    }
+
+    /* ---------- Fullscreen (Pull) ---------- */
+    function openFs(src) {
+      el.fsImg.src = src; fsScale = 1; fsOffsetX = 0; fsOffsetY = 0; fsApply();
+      el.fsBackdrop.classList.add('show'); el.fsBackdrop.setAttribute('aria-hidden', 'false');
+      document.documentElement.style.overflow = 'hidden'; fsOpen = true;
+      requestAnimationFrame(() => { const r = el.fsImg.getBoundingClientRect(); fsBaseW = r.width; fsBaseH = r.height; });
+    }
+    function closeFs() {
+      if (!fsOpen) return;
+      fsOpen = false; el.fsBackdrop.classList.remove('show'); el.fsBackdrop.setAttribute('aria-hidden', 'true');
+      document.documentElement.style.overflow = ''; fsPointers.clear(); fsPanRef = null; fsTapRef = null;
+    }
+    function fsApply() {
+      const maxX = Math.max(0, (fsBaseW * fsScale - fsBaseW) / 2);
+      const maxY = Math.max(0, (fsBaseH * fsScale - fsBaseH) / 2);
+      fsOffsetX = clamp(fsOffsetX, -maxX, maxX);
+      fsOffsetY = clamp(fsOffsetY, -maxY, maxY);
+      el.fsImg.style.transform = `translate(-50%, -50%) translate(${fsOffsetX}px, ${fsOffsetY}px) scale(${fsScale})`;
+    }
+    el.fsBackdrop.addEventListener('pointerdown', (e) => {
+      if (!fsOpen) return;
+      el.fsBackdrop.setPointerCapture(e.pointerId);
+      fsPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (fsPointers.size === 1) {
+        fsPanRef = { x: e.clientX, y: e.clientY, offsetX: fsOffsetX, offsetY: fsOffsetY };
+        fsTapRef = { x: e.clientX, y: e.clientY, t: performance.now() };
+      } else if (fsPointers.size === 2) {
+        const [p1, p2] = Array.from(fsPointers.values());
+        fsStartDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        fsStartScale = fsScale;
+        fsStartMid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        fsTapRef = null;
+      }
+    });
+    el.fsBackdrop.addEventListener('pointermove', (e) => {
+      if (!fsOpen) return; if (!fsPointers.has(e.pointerId)) return;
+      fsPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (fsPointers.size === 2) {
+        const [p1, p2] = Array.from(fsPointers.values());
+        const curDist = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+        const nextScale = clamp((curDist / (fsStartDistance || 1)) * fsStartScale, 1, 6);
+        const curMid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        fsOffsetX += (curMid.x - fsStartMid.x);
+        fsOffsetY += (curMid.y - fsStartMid.y);
+        fsStartMid = curMid; fsScale = nextScale; fsApply();
+      } else if (fsPointers.size === 1 && fsPanRef && fsScale > 1) {
+        const p = fsPointers.values().next().value;
+        fsOffsetX = fsPanRef.offsetX + (p.x - fsPanRef.x);
+        fsOffsetY = fsPanRef.offsetY + (p.y - fsPanRef.y);
+        fsApply();
+      }
+    });
+    el.fsBackdrop.addEventListener('pointerup', (e) => {
+      if (!fsOpen) return; fsPointers.delete(e.pointerId);
+      if (fsPointers.size === 0 && fsTapRef) {
+        const dt = performance.now() - fsTapRef.t, dx = Math.abs(e.clientX - fsTapRef.x), dy = Math.abs(e.clientY - fsTapRef.y);
+        if (dt < 250 && dx < 8 && dy < 8) { closeFs(); return; }
+      }
+      if (fsPointers.size === 1) {
+        const p = fsPointers.values().next().value; fsPanRef = { x: p.x, y: p.y, offsetX: fsOffsetX, offsetY: fsOffsetY };
+      } else { fsPanRef = null; }
+    });
+    el.fsBackdrop.addEventListener('pointercancel', (e) => { fsPointers.delete(e.pointerId); fsPanRef = null; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFs(); });
+
+    /* ---------- Keep action bar height in sync (Home) ---------- */
+    function updatePinnedMenuHeight() {
+      const shown = el.actionMenu && el.actionMenu.style.display !== 'none';
+      const h = shown ? el.actionMenu.offsetHeight : 0;
+      document.documentElement.style.setProperty('--menu-height', (h || 80) + 'px');
+    }
+    window.addEventListener('resize', () => { updatePinnedMenuHeight(); });
+
+    /* ---------- Helpers ---------- */
+    function parseNum(v) { if (v == null || v === '') return null; const n = Number(v); return isFinite(n) ? n : null; }
+    function round2(n) { return Math.round(n * 100) / 100; }
+    function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+    function clampInt(n, a, b) { n = Math.floor(isFinite(n) ? n : a); return Math.max(a, Math.min(b, n)); }
+    function escapeHtml(s) { return String(s).replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c])); }
+    function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+  })();
+  </script>
 </body>
 </html>
